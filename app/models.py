@@ -1,9 +1,9 @@
 """
 YouTube Translator API 모델 정의
-Pydantic v2 호환 버전
+Pydantic v1을 사용한 안정적인 버전
 """
 
-from pydantic import BaseModel, HttpUrl, Field, ConfigDict, field_validator
+from pydantic import BaseModel, HttpUrl, Field, validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -31,35 +31,35 @@ class LanguageCode(str, Enum):
 # Request 모델
 class TranslateRequest(BaseModel):
     """YouTube 번역 요청 모델"""
-    model_config = ConfigDict(
-        str_strip_whitespace=True,  # 문자열 공백 자동 제거
-        json_schema_extra={
-            "example": {
-                "youtube_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-            }
-        }
-    )
-    
     youtube_url: HttpUrl = Field(
         ...,
         description="번역할 YouTube 영상 URL",
-        examples=["https://www.youtube.com/watch?v=dQw4w9WgXcQ"]
+        example="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
     )
     
-    # 선택적 필드들
+    # 선택적 필드
     target_language: LanguageCode = Field(
         default=LanguageCode.KO,
         description="번역 대상 언어"
     )
     
-    @field_validator('youtube_url')
-    @classmethod
-    def validate_youtube_url(cls, v: HttpUrl) -> HttpUrl:
+    @validator('youtube_url')
+    def validate_youtube_url(cls, v):
         """YouTube URL 유효성 검사"""
         url_str = str(v)
         if not any(domain in url_str for domain in ['youtube.com', 'youtu.be']):
             raise ValueError('유효한 YouTube URL이 아닙니다.')
         return v
+    
+    class Config:
+        """Pydantic v1 설정"""
+        str_strip_whitespace = True  # 문자열 공백 자동 제거
+        schema_extra = {
+            "example": {
+                "youtube_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                "target_language": "ko"
+            }
+        }
 
 
 # Response 모델
@@ -89,30 +89,6 @@ class VideoMetadata(BaseModel):
 
 class TranslateResponse(BaseModel):
     """번역 응답 모델"""
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "status": "completed",
-                "video_metadata": {
-                    "video_id": "dQw4w9WgXcQ",
-                    "title": "Example Video",
-                    "channel": "Example Channel",
-                    "duration": 300
-                },
-                "segments": [
-                    {
-                        "start_time": 0.0,
-                        "end_time": 3.5,
-                        "original_text": "Hello, world!",
-                        "translated_text": "안녕하세요, 세계!"
-                    }
-                ],
-                "total_segments": 1,
-                "processing_time": 2.5
-            }
-        }
-    )
-    
     status: TranslationStatus = Field(..., description="번역 상태")
     video_metadata: VideoMetadata = Field(..., description="영상 메타데이터")
     segments: List[TranslationSegment] = Field(
@@ -120,17 +96,37 @@ class TranslateResponse(BaseModel):
         description="번역된 자막 세그먼트 목록"
     )
     total_segments: int = Field(..., description="전체 세그먼트 수")
-    processing_time: Optional[float] = Field(
-        None,
-        description="처리 시간 (초)"
-    )
-    error_message: Optional[str] = Field(
-        None,
-        description="오류 발생 시 메시지"
-    )
+    processing_time: Optional[float] = Field(None, description="처리 시간 (초)")
+    error_message: Optional[str] = Field(None, description="오류 발생 시 메시지")
+    
+    class Config:
+        """응답 예시"""
+        schema_extra = {
+            "example": {
+                "status": "completed",
+                "video_metadata": {
+                    "video_id": "dQw4w9WgXcQ",
+                    "title": "Example Video",
+                    "channel": "Example Channel",
+                    "duration": 300,
+                    "thumbnail_url": "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg"
+                },
+                "segments": [
+                    {
+                        "start_time": 0.0,
+                        "end_time": 3.5,
+                        "original_text": "Hello, world!",
+                        "translated_text": "안녕하세요, 세계!",
+                        "confidence": 0.95
+                    }
+                ],
+                "total_segments": 1,
+                "processing_time": 2.5
+            }
+        }
 
 
-# 추가 모델들
+# 헬스체크 응답
 class HealthCheckResponse(BaseModel):
     """헬스체크 응답 모델"""
     status: str = Field(..., description="서버 상태")
@@ -139,43 +135,41 @@ class HealthCheckResponse(BaseModel):
         default_factory=datetime.utcnow,
         description="응답 시간"
     )
-    gemini_configured: bool = Field(
-        ...,
-        description="Gemini API 설정 여부"
-    )
+    gemini_configured: bool = Field(..., description="Gemini API 설정 여부")
 
 
+# 에러 응답
 class ErrorResponse(BaseModel):
     """에러 응답 모델"""
     error: str = Field(..., description="에러 유형")
     message: str = Field(..., description="에러 메시지")
-    detail: Optional[Dict[str, Any]] = Field(
-        None,
-        description="추가 에러 정보"
-    )
+    detail: Optional[Dict[str, Any]] = Field(None, description="추가 에러 정보")
     timestamp: datetime = Field(
         default_factory=datetime.utcnow,
         description="에러 발생 시간"
     )
 
 
-class TranslationHistoryItem(BaseModel):
-    """번역 히스토리 아이템"""
-    id: str = Field(..., description="고유 ID")
-    youtube_url: HttpUrl = Field(..., description="YouTube URL")
-    video_title: str = Field(..., description="영상 제목")
-    status: TranslationStatus = Field(..., description="번역 상태")
-    created_at: datetime = Field(..., description="생성 시간")
-    completed_at: Optional[datetime] = Field(None, description="완료 시간")
-    segments_count: int = Field(0, description="번역된 세그먼트 수")
-
-
-# WebSocket 메시지 모델
+# WebSocket 메시지 (실시간 진행상황용)
 class WebSocketMessage(BaseModel):
     """WebSocket 메시지 모델"""
-    type: str = Field(..., description="메시지 타입")
+    type: str = Field(..., description="메시지 타입 (progress, error, complete)")
     data: Dict[str, Any] = Field(..., description="메시지 데이터")
     timestamp: datetime = Field(
         default_factory=datetime.utcnow,
         description="메시지 시간"
     )
+    
+    class Config:
+        """메시지 예시"""
+        schema_extra = {
+            "example": {
+                "type": "progress",
+                "data": {
+                    "current_segment": 10,
+                    "total_segments": 50,
+                    "percentage": 20
+                },
+                "timestamp": "2025-06-17T12:00:00Z"
+            }
+        }
