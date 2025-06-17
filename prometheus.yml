@@ -1,0 +1,102 @@
+# YouTube Translator Prometheus 모니터링 설정
+# 애플리케이션 메트릭을 수집하고 모니터링합니다
+
+# 전역 설정
+global:
+  # 스크레이프 간격 (메트릭 수집 주기)
+  scrape_interval: 15s
+  
+  # 평가 간격 (알림 규칙 평가 주기)
+  evaluation_interval: 15s
+  
+  # 스크레이프 타임아웃
+  scrape_timeout: 10s
+  
+  # 외부 라벨 (Alertmanager 등에서 사용)
+  external_labels:
+    monitor: 'youtube-translator'
+    environment: 'production'
+
+# Alertmanager 설정 (선택사항)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - 'alertmanager:9093'
+
+# 알림 규칙 파일 경로
+rule_files:
+  # - "alert_rules.yml"
+  # - "recording_rules.yml"
+
+# 스크레이프 설정 (메트릭 수집 대상)
+scrape_configs:
+  # ===========================
+  # Prometheus 자체 모니터링
+  # ===========================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: '/metrics'
+
+  # ===========================
+  # FastAPI 애플리케이션 모니터링
+  # ===========================
+  - job_name: 'youtube-translator'
+    static_configs:
+      - targets: ['web:8000']  # Docker 서비스명:포트
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    
+    # 메트릭에 추가할 라벨
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'http_request_duration_seconds.*'
+        target_label: 'service'
+        replacement: 'api'
+
+  # ===========================
+  # Redis 모니터링 (Redis Exporter 필요)
+  # ===========================
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 10s
+
+  # ===========================
+  # PostgreSQL 모니터링 (Postgres Exporter 필요)
+  # ===========================
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 10s
+
+  # ===========================
+  # Node Exporter (서버 메트릭)
+  # ===========================
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 10s
+
+  # ===========================
+  # Docker 컨테이너 모니터링 (cAdvisor)
+  # ===========================
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 10s
+
+# 초보자를 위한 설명:
+# 
+# Prometheus는 시계열 데이터베이스로 메트릭을 수집합니다:
+# 1. scrape_configs: 어디서 메트릭을 가져올지 정의
+# 2. job_name: 메트릭 그룹의 이름
+# 3. targets: 실제 메트릭을 제공하는 서버 주소
+# 4. metrics_path: 메트릭 엔드포인트 경로 (보통 /metrics)
+#
+# 주요 메트릭:
+# - HTTP 요청 수/지연시간
+# - CPU/메모리 사용률
+# - 에러율
+# - 활성 연결 수
