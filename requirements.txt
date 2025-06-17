@@ -6,7 +6,7 @@ gunicorn==21.2.0
 # Pydantic v2 (Python 3.13 호환)
 pydantic==2.5.3
 pydantic-settings==2.1.0
-pydantic-core==2.14.6
+# pydantic-core는 pydantic이 자동으로 설치함 (제거)
 
 # AI/ML 관련
 google-generativeai==0.3.2  # 최신 버전으로 업그레이드
