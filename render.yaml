@@ -15,7 +15,7 @@ services:
     # 빌드 환경 변수로도 Python 버전 지정
     buildEnvVars:
       - key: PYTHON_VERSION
-        value: "3.11"
+        value: "3.11.8"
     
     # 빌드 명령어
     buildCommand: |
