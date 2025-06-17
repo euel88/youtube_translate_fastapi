@@ -1,0 +1,18 @@
+# 핵심 의존성
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+google-generativeai==0.3.0
+pydantic==2.5.0
+
+# 추가 기능을 위한 패키지
+python-multipart==0.0.6
+python-dotenv==1.0.0
+httpx==0.25.2
+
+# 프로덕션 배포용
+gunicorn==21.2.0
+redis==5.0.1  # 캐싱용 (선택사항)
+
+# 모니터링 및 로깅
+python-json-logger==2.0.7
+prometheus-fastapi-instrumentator==6.1.0  # 메트릭 수집용
