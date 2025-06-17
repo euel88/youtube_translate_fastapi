@@ -9,8 +9,13 @@ services:
     region: singapore  # 한국에서 가장 가까운 리전
     plan: free  # 무료 플랜
     
-    # Python 버전 (안정적인 3.11 사용)
+    # Python 버전 명시적 지정 (중요!)
     pythonVersion: "3.11"
+    
+    # 빌드 환경 변수로도 Python 버전 지정
+    buildEnvVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
     
     # 빌드 명령어
     buildCommand: |
