@@ -1,60 +1,151 @@
-# FastAPI 및 관련 패키지
-fastapi==0.109.0  # 최신 버전으로 업그레이드
-uvicorn[standard]==0.27.0  # 최신 버전으로 업그레이드
-gunicorn==21.2.0
+# render.yaml
+# Render.com 자동 배포 설정 파일
+# YouTube Translator FastAPI 애플리케이션용
 
-# Pydantic v2 (Python 3.13 호환)
-pydantic==2.5.3
-pydantic-settings==2.1.0
-# pydantic-core는 pydantic이 자동으로 설치함 (제거)
-
-# AI/ML 관련
-google-generativeai==0.3.2  # 최신 버전으로 업그레이드
-
-# YouTube 관련
-youtube-transcript-api==0.6.2  # 최신 버전으로 업그레이드
-
-# 웹소켓
-websockets==12.0
-
-# 환경 설정
-python-dotenv==1.0.0
-
-# HTTP 클라이언트
-httpx==0.26.0  # 최신 버전으로 업그레이드
-aiofiles==23.2.1
-python-multipart==0.0.6
-
-# 데이터베이스 (선택사항)
-redis==5.0.1
-sqlalchemy==2.0.25  # 최신 버전으로 업그레이드
-alembic==1.13.1  # 최신 버전으로 업그레이드
-
-# 인증/보안
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-cryptography==41.0.7
-
-# 날짜/시간
-python-dateutil==2.8.2
-pytz==2023.3
-
-# 유효성 검사
-email-validator==2.1.0.post1  # 버그 수정 버전
-
-# 로깅/모니터링
-python-json-logger==2.0.7
-prometheus-fastapi-instrumentator==6.1.0
-sentry-sdk[fastapi]==1.39.1
-
-# 테스트 도구 (개발용)
-pytest==7.4.4  # 최신 버전으로 업그레이드
-pytest-asyncio==0.23.3  # Python 3.13 호환 버전
-pytest-cov==4.1.0
-pytest-mock==3.12.0
-
-# API 테스트
-respx==0.20.2
-
-# 타입 체킹 (Python 3.13 호환)
-typing-extensions==4.9.0
+services:
+  # 웹 서비스 정의
+  - type: web
+    name: youtube-translator-kr  # 서비스 이름 (URL에 포함됨)
+    runtime: python
+    region: singapore  # 한국에서 가장 가까운 리전
+    plan: free  # 무료 플랜 (월 750시간)
+    
+    # Python 버전 지정 (3.13은 너무 최신이라 호환성 문제 있음)
+    pythonVersion: "3.11"
+    
+    # 빌드 필터 설정 (선택사항)
+    buildFilter:
+      paths:
+        - app/**
+        - requirements.txt
+        - render.yaml
+        - "*.py"
+    
+    # 빌드 명령어
+    buildCommand: |
+      # 빌드 시작 로그
+      echo "🔨 빌드 시작..."
+      echo "📍 현재 디렉토리: $(pwd)"
+      echo "📂 파일 목록:"
+      ls -la
+      
+      # Python 버전 확인
+      echo "🐍 Python 버전:"
+      python --version
+      
+      # pip 업그레이드
+      echo "📦 pip 업그레이드 중..."
+      pip install --upgrade pip
+      
+      # 의존성 설치
+      echo "📚 패키지 설치 중..."
+      pip install -r requirements.txt
+      
+      # gunicorn과 uvicorn worker 명시적 설치 (혹시 누락된 경우 대비)
+      pip install gunicorn uvicorn[standard]
+      
+      # 설치된 패키지 확인
+      echo "✅ 설치된 주요 패키지:"
+      pip show fastapi gunicorn uvicorn
+      
+      # 프로젝트 구조 확인 (디버깅용)
+      echo "🔍 프로젝트 구조 확인:"
+      if [ -d "app" ]; then
+        echo "✓ app 디렉토리 존재"
+        ls -la app/
+      else
+        echo "❌ app 디렉토리 없음!"
+      fi
+      
+      # main.py 파일 확인
+      if [ -f "app/main.py" ]; then
+        echo "✓ app/main.py 파일 존재"
+      else
+        echo "❌ app/main.py 파일 없음!"
+      fi
+      
+      echo "✅ 빌드 완료!"
+    
+    # 서버 시작 명령어 (중요!)
+    startCommand: |
+      # 서버 시작 전 환경 확인
+      echo "🚀 서버 시작 준비..."
+      echo "📍 현재 디렉토리: $(pwd)"
+      echo "🌐 포트: $PORT"
+      echo "🔧 환경: ${ENVIRONMENT:-production}"
+      
+      # gunicorn으로 FastAPI 앱 실행
+      # app.main:app = app 디렉토리의 main.py 파일에서 app 변수
+      exec gunicorn app.main:app \
+        --bind 0.0.0.0:$PORT \
+        --workers 1 \
+        --worker-class uvicorn.workers.UvicornWorker \
+        --worker-connections 1000 \
+        --max-requests 1000 \
+        --max-requests-jitter 50 \
+        --timeout 30 \
+        --graceful-timeout 30 \
+        --keep-alive 5 \
+        --access-logfile - \
+        --error-logfile - \
+        --log-level ${LOG_LEVEL:-info} \
+        --capture-output \
+        --enable-stdio-inheritance
+    
+    # 환경 변수 설정
+    envVars:
+      # Gemini API 키 (Render 대시보드에서 설정)
+      - key: GEMINI_API_KEY
+        sync: false  # 보안을 위해 대시보드에서 수동 입력
+        
+      # Python 환경 변수
+      - key: PYTHON_VERSION
+        value: "3.11"
+        
+      - key: PYTHONUNBUFFERED
+        value: "1"  # 로그 실시간 출력
+        
+      # 타임존 설정 (한국 시간)
+      - key: TZ
+        value: Asia/Seoul
+        
+      # 애플리케이션 설정
+      - key: ENVIRONMENT
+        value: production
+        
+      - key: DEBUG
+        value: "False"  # 프로덕션에서는 False
+        
+      - key: LOG_LEVEL
+        value: info
+        
+      # FastAPI 설정
+      - key: HOST
+        value: "0.0.0.0"
+        
+      - key: PORT
+        value: "10000"  # Render의 기본 포트
+        
+      # CORS 설정 (배포 후 실제 도메인으로 변경 필요)
+      - key: ALLOWED_ORIGINS
+        value: "*"  # 초기에는 모든 도메인 허용
+      
+      # 성능 최적화
+      - key: WEB_CONCURRENCY
+        value: "1"  # 무료 플랜에서는 1개 워커 권장
+    
+    # 헬스체크 설정
+    healthCheckPath: /health
+    healthCheckInterval: 300  # 5분마다 체크
+    healthCheckTimeout: 10    # 10초 타임아웃
+    
+    # 자동 배포 설정
+    autoDeploy: true  # main 브랜치 푸시 시 자동 배포
+    
+    # 빌드 환경 변수
+    buildEnvVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+        
+      - key: PIP_NO_CACHE_DIR
+        value: "1"  # 빌드 시간 단축
