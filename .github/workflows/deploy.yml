@@ -1,7 +1,256 @@
-# 파일 생성
-touch .github/workflows/deploy.yml
+# GitHub Actions CI/CD 워크플로우
+# main 브랜치에 푸시하면 자동으로 테스트하고 배포합니다
 
-# 또는 직접 편집기로 생성
-nano .github/workflows/deploy.yml
-# 또는
-code .github/workflows/deploy.yml
+name: CI/CD Pipeline
+
+# 트리거 조건
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # 수동 실행 가능
+
+# 환경 변수
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  # ===========================
+  # 테스트 Job
+  # ===========================
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    # 서비스 컨테이너 (테스트용 DB)
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: 📥 체크아웃
+      uses: actions/checkout@v4
+    
+    - name: 🐍 Python 설정
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: 📦 의존성 설치
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: 🔍 코드 품질 검사
+      run: |
+        # 코드 포맷팅 확인
+        black --check app/
+        
+        # 린팅
+        flake8 app/ --max-line-length=100 --exclude=__pycache__
+        
+        # 타입 체크
+        mypy app/ --ignore-missing-imports
+    
+    - name: 🧪 단위 테스트 실행
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        DATABASE_URL: postgresql://testuser:testpass@localhost:5432/test_db
+        REDIS_URL: redis://localhost:6379/0
+        SECRET_KEY: test-secret-key
+      run: |
+        pytest tests/ -v --cov=app --cov-report=xml --cov-report=html
+    
+    - name: 📊 테스트 커버리지 업로드
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: true
+
+  # ===========================
+  # 빌드 Job
+  # ===========================
+  build:
+    name: Build Docker Image
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: 📥 체크아웃
+      uses: actions/checkout@v4
+    
+    - name: 🔧 Docker Buildx 설정
+      uses: docker/setup-buildx-action@v3
+    
+    - name: 🔑 Docker Hub 로그인
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - name: 📝 메타데이터 추출
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ secrets.DOCKER_USERNAME }}/youtube-translator
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    - name: 🏗️ Docker 이미지 빌드 및 푸시
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+
+  # ===========================
+  # 배포 Job (AWS EC2)
+  # ===========================
+  deploy-aws:
+    name: Deploy to AWS EC2
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: 📥 체크아웃
+      uses: actions/checkout@v4
+    
+    - name: 🔑 SSH 키 설정
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+    
+    - name: 🚀 EC2에 배포
+      env:
+        EC2_HOST: ${{ secrets.EC2_HOST }}
+        EC2_USER: ${{ secrets.EC2_USER }}
+      run: |
+        # SSH 설정
+        ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
+          # 디렉토리 이동
+          cd /home/ubuntu/youtube-translator
+          
+          # 최신 코드 가져오기
+          git pull origin main
+          
+          # 환경 변수 업데이트
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+          echo "REDIS_URL=${{ secrets.REDIS_URL }}" >> .env
+          
+          # Docker 이미지 업데이트
+          docker-compose pull
+          
+          # 서비스 재시작
+          docker-compose down
+          docker-compose up -d
+          
+          # 헬스체크
+          sleep 10
+          curl -f http://localhost:8000/health || exit 1
+          
+          echo "✅ 배포 완료!"
+        EOF
+
+  # ===========================
+  # 배포 Job (Vercel) - 프론트엔드만
+  # ===========================
+  deploy-vercel:
+    name: Deploy Frontend to Vercel
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: 📥 체크아웃
+      uses: actions/checkout@v4
+    
+    - name: 🚀 Vercel 배포
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+        vercel-args: '--prod'
+
+  # ===========================
+  # 알림 Job
+  # ===========================
+  notify:
+    name: Send Notifications
+    needs: [test, build, deploy-aws]
+    runs-on: ubuntu-latest
+    if: always()  # 항상 실행
+    
+    steps:
+    - name: 📧 Slack 알림
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        text: |
+          배포 상태: ${{ job.status }}
+          커밋: ${{ github.sha }}
+          작성자: ${{ github.actor }}
+          메시지: ${{ github.event.head_commit.message }}
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      if: always()
+    
+    - name: 📊 배포 메트릭 전송
+      run: |
+        # Datadog, New Relic 등에 메트릭 전송
+        echo "Deployment metrics sent"
+
+# ===========================
+# 워크플로우 설명
+# ===========================
+# 1. 코드가 main 브랜치에 푸시되면 시작
+# 2. 테스트 실행 (유닛 테스트, 코드 품질 검사)
+# 3. Docker 이미지 빌드 및 Docker Hub에 푸시
+# 4. AWS EC2에 자동 배포
+# 5. Slack으로 결과 알림
+
+# 필요한 시크릿:
+# - GEMINI_API_KEY: Gemini API 키
+# - DOCKER_USERNAME: Docker Hub 사용자명
+# - DOCKER_PASSWORD: Docker Hub 비밀번호
+# - EC2_HOST: EC2 인스턴스 주소
+# - EC2_USER: EC2 사용자 (보통 ubuntu)
+# - EC2_SSH_KEY: EC2 SSH 개인키
+# - SLACK_WEBHOOK: Slack 웹훅 URL
+# - VERCEL_TOKEN: Vercel 토큰 (선택사항)
