@@ -1,3 +1,10 @@
+# Python 3.11 필수 (Render가 이를 인식할 수 있음)
+python-version>=3.11,<3.12
+
+# 기존 패키지들...
+fastapi==0.104.1
+# ...
+
 # FastAPI 핵심 패키지
 fastapi==0.104.1
 uvicorn[standard]==0.24.0.post1
