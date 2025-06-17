@@ -1,18 +1,103 @@
-# 핵심 의존성
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-google-generativeai==0.3.0
-pydantic==2.5.0
+# YouTube Translator Python 의존성
+# 설치: pip install -r requirements.txt
 
-# 추가 기능을 위한 패키지
-python-multipart==0.0.6
-python-dotenv==1.0.0
-httpx==0.25.2
+# ===========================
+# 핵심 프레임워크
+# ===========================
+fastapi==0.104.1          # 웹 프레임워크
+uvicorn[standard]==0.24.0 # ASGI 서버
+gunicorn==21.2.0         # 프로덕션 서버
 
-# 프로덕션 배포용
-gunicorn==21.2.0
-redis==5.0.1  # 캐싱용 (선택사항)
+# ===========================
+# Google Gemini API
+# ===========================
+google-generativeai==0.3.0  # Gemini API 클라이언트
 
-# 모니터링 및 로깅
-python-json-logger==2.0.7
-prometheus-fastapi-instrumentator==6.1.0  # 메트릭 수집용
+# ===========================
+# 데이터 검증 & 설정
+# ===========================
+pydantic==2.5.0            # 데이터 검증
+pydantic-settings==2.1.0   # 설정 관리
+python-dotenv==1.0.0       # 환경 변수 로드
+
+# ===========================
+# HTTP & 비동기
+# ===========================
+httpx==0.25.2             # HTTP 클라이언트
+aiofiles==23.2.1          # 비동기 파일 처리
+python-multipart==0.0.6   # 폼 데이터 처리
+
+# ===========================
+# 캐싱 & 데이터베이스
+# ===========================
+redis==5.0.1              # Redis 클라이언트 (선택사항)
+sqlalchemy==2.0.23        # ORM (선택사항)
+alembic==1.13.0          # DB 마이그레이션 (선택사항)
+asyncpg==0.29.0          # PostgreSQL 드라이버 (선택사항)
+
+# ===========================
+# 보안 & 인증
+# ===========================
+python-jose[cryptography]==3.3.0  # JWT 토큰
+passlib[bcrypt]==1.7.4           # 비밀번호 해싱
+cryptography==41.0.7             # 암호화
+
+# ===========================
+# 유틸리티
+# ===========================
+python-dateutil==2.8.2    # 날짜/시간 처리
+pytz==2023.3             # 시간대 처리
+email-validator==2.1.0   # 이메일 검증
+
+# ===========================
+# 로깅 & 모니터링
+# ===========================
+python-json-logger==2.0.7              # JSON 로깅
+prometheus-fastapi-instrumentator==6.1.0  # Prometheus 메트릭
+sentry-sdk[fastapi]==1.39.1            # 에러 추적 (선택사항)
+
+# ===========================
+# 테스트
+# ===========================
+pytest==7.4.3            # 테스트 프레임워크
+pytest-asyncio==0.21.1   # 비동기 테스트
+pytest-cov==4.1.0       # 커버리지
+pytest-mock==3.12.0     # 모킹
+httpx-mock==0.25.0      # HTTP 모킹
+factory-boy==3.3.0      # 테스트 데이터 생성
+
+# ===========================
+# 개발 도구
+# ===========================
+black==23.12.0          # 코드 포맷터
+flake8==6.1.0          # 린터
+mypy==1.7.1            # 타입 체커
+isort==5.13.2          # import 정렬
+pre-commit==3.6.0      # Git 훅
+ipython==8.18.1        # 인터랙티브 셸
+
+# ===========================
+# 문서화
+# ===========================
+mkdocs==1.5.3                    # 문서 생성
+mkdocs-material==9.5.2           # Material 테마
+mkdocs-mermaid2-plugin==1.1.1   # 다이어그램
+
+# ===========================
+# 성능 최적화
+# ===========================
+orjson==3.9.10         # 빠른 JSON 처리
+ujson==5.9.0          # 대안 JSON 라이브러리
+aiocache==0.12.2      # 비동기 캐싱
+
+# ===========================
+# YouTube 관련 (선택사항)
+# ===========================
+# youtube-transcript-api==0.6.1  # YouTube 자막 추출
+# yt-dlp==2023.12.30           # YouTube 다운로드
+
+# ===========================
+# 버전 고정
+# ===========================
+# 프로덕션에서는 정확한 버전을 사용하세요
+# pip freeze > requirements-lock.txt
