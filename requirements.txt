@@ -1,60 +1,29 @@
-# render.yaml
-# YouTube Translator FastAPI를 위한 Render.com 배포 설정
+# FastAPI 핵심 패키지
+fastapi==0.104.1
+uvicorn[standard]==0.24.0.post1
+gunicorn==21.2.0
 
-services:
-  # 웹 서비스 정의
-  - type: web
-    name: youtube-translator-kr
-    runtime: python
-    region: singapore  # 한국에서 가장 가까운 리전
-    plan: free  # 무료 플랜
-    
-    # Python 버전 (안정적인 3.11 사용)
-    pythonVersion: "3.11"
-    
-    # 빌드 명령어
-    buildCommand: |
-      echo "🔨 빌드 시작..."
-      echo "🐍 Python 버전: $(python --version)"
-      pip install --upgrade pip
-      pip install -r requirements.txt
-      echo "✅ 빌드 완료!"
-    
-    # 서버 시작 명령어
-    startCommand: |
-      echo "🚀 서버 시작..."
-      gunicorn app.main:app \
-        --bind 0.0.0.0:$PORT \
-        --worker-class uvicorn.workers.UvicornWorker \
-        --workers 1 \
-        --timeout 30 \
-        --access-logfile - \
-        --error-logfile -
-    
-    # 환경 변수
-    envVars:
-      # Gemini API 키 (Render 대시보드에서 설정)
-      - key: GEMINI_API_KEY
-        sync: false  # 보안상 대시보드에서 수동 입력
-        
-      # 기본 환경 변수
-      - key: ENVIRONMENT
-        value: production
-        
-      - key: DEBUG
-        value: "False"
-        
-      - key: TZ
-        value: Asia/Seoul
-        
-      - key: PYTHONUNBUFFERED
-        value: "1"
-        
-      - key: ALLOWED_ORIGINS
-        value: "*"  # 배포 후 실제 도메인으로 변경 필요
-    
-    # 헬스체크
-    healthCheckPath: /health
-    
-    # 자동 배포
-    autoDeploy: true
+# Pydantic v1 (안정적이고 검증된 버전)
+pydantic==1.10.13
+
+# 환경 설정
+python-dotenv==1.0.0
+
+# Google AI
+google-generativeai==0.3.0
+
+# YouTube 자막 추출
+youtube-transcript-api==0.6.1
+
+# 웹소켓 지원
+websockets==12.0
+
+# HTTP 클라이언트
+httpx==0.25.2
+aiofiles==23.2.1
+python-multipart==0.0.6
+
+# 추가 유틸리티
+typing-extensions>=4.8.0
+requests>=2.31.0
+certifi>=2023.7.22
