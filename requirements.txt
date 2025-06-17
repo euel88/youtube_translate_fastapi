@@ -1,53 +1,60 @@
-# FastAPI 핵심 패키지
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
+# FastAPI 및 관련 패키지
+fastapi==0.109.0  # 최신 버전으로 업그레이드
+uvicorn[standard]==0.27.0  # 최신 버전으로 업그레이드
 gunicorn==21.2.0
 
-# Google Gemini API
-google-generativeai==0.3.0
+# Pydantic v2 (Python 3.13 호환)
+pydantic==2.5.3
+pydantic-settings==2.1.0
+pydantic-core==2.14.6
 
-# YouTube 자막 추출
-youtube-transcript-api==0.6.1
+# AI/ML 관련
+google-generativeai==0.3.2  # 최신 버전으로 업그레이드
 
-# WebSocket 지원
+# YouTube 관련
+youtube-transcript-api==0.6.2  # 최신 버전으로 업그레이드
+
+# 웹소켓
 websockets==12.0
 
-# 데이터 검증 및 설정
-pydantic==1.10.13
-# pydantic-settings==2.1.0  # 제거됨 (pydantic 1.x와 충돌)
+# 환경 설정
 python-dotenv==1.0.0
 
-# HTTP 클라이언트 및 파일 처리
-httpx==0.25.2
+# HTTP 클라이언트
+httpx==0.26.0  # 최신 버전으로 업그레이드
 aiofiles==23.2.1
 python-multipart==0.0.6
 
-# 데이터베이스 및 캐싱 (선택사항)
+# 데이터베이스 (선택사항)
 redis==5.0.1
-sqlalchemy==2.0.23
-alembic==1.13.0
-# asyncpg==0.29.0  # ❌ 제거! Python 3.13과 호환 안 됨
+sqlalchemy==2.0.25  # 최신 버전으로 업그레이드
+alembic==1.13.1  # 최신 버전으로 업그레이드
 
-# 보안 패키지
+# 인증/보안
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 cryptography==41.0.7
 
-# 유틸리티
+# 날짜/시간
 python-dateutil==2.8.2
 pytz==2023.3
-email-validator==2.1.0
 
-# 로깅 및 모니터링
+# 유효성 검사
+email-validator==2.1.0.post1  # 버그 수정 버전
+
+# 로깅/모니터링
 python-json-logger==2.0.7
 prometheus-fastapi-instrumentator==6.1.0
 sentry-sdk[fastapi]==1.39.1
 
-# 테스트 패키지 (개발용)
-pytest==7.4.3
-pytest-asyncio==0.21.1
+# 테스트 도구 (개발용)
+pytest==7.4.4  # 최신 버전으로 업그레이드
+pytest-asyncio==0.23.3  # Python 3.13 호환 버전
 pytest-cov==4.1.0
 pytest-mock==3.12.0
 
-# httpx 모킹 라이브러리
+# API 테스트
 respx==0.20.2
+
+# 타입 체킹 (Python 3.13 호환)
+typing-extensions==4.9.0
