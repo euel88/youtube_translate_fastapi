@@ -77,23 +77,23 @@
                         <summary>고급 옵션 <i class="fas fa-chevron-down"></i></summary>
                         <div class="options-grid">
                             <label class="option-label">
-                                <input type="checkbox" id="includeSummary" checked>
-                                <span>요약 포함</span>
+                                <input type="checkbox" id="showOriginal" checked>
+                                <span>원문도 함께 표시</span>
                             </label>
                             <label class="option-label">
-                                <input type="checkbox" id="includeTimestamps">
-                                <span>타임스탬프 포함</span>
+                                <input type="checkbox" id="showTimecode" checked>
+                                <span>시간 표시</span>
                             </label>
                             <label class="option-label">
-                                <input type="checkbox" id="highlightKeywords" checked>
-                                <span>중요 키워드 강조</span>
+                                <input type="checkbox" id="autoScroll" checked>
+                                <span>자동 스크롤</span>
                             </label>
                         </div>
                     </details>
                     
                     <button type="submit" class="submit-btn" id="submitBtn">
-                        <i class="fas fa-language"></i>
-                        <span>번역 시작</span>
+                        <i class="fas fa-play"></i>
+                        <span>영상 재생 & 번역</span>
                     </button>
                 </form>
                 
@@ -106,6 +106,41 @@
                     <button type="button" class="sample-url-btn" data-url="https://www.youtube.com/watch?v=kXYiU_JCYtU">
                         Linkin Park - Numb
                     </button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- YouTube Player 섹션 -->
+        <section id="playerSection" class="player-section hidden">
+            <div class="container">
+                <div class="player-wrapper">
+                    <!-- YouTube IFrame Player -->
+                    <div id="youtube-player"></div>
+                    
+                    <!-- 자막 오버레이 -->
+                    <div id="subtitle-overlay" class="subtitle-overlay">
+                        <div class="subtitle-text">
+                            <div id="subtitle-korean" class="subtitle-korean"></div>
+                            <div id="subtitle-english" class="subtitle-english"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 플레이어 컨트롤 -->
+                    <div class="player-controls">
+                        <button id="playPauseBtn" class="control-btn">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                        <span id="timeDisplay" class="time-display">0:00 / 0:00</span>
+                    </div>
+                </div>
+                
+                <!-- 자막 리스트 -->
+                <div class="subtitle-list-wrapper">
+                    <h3>자막 목록</h3>
+                    <div id="subtitleList" class="subtitle-list"></div>
                 </div>
             </div>
         </section>
