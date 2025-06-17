@@ -1,0 +1,126 @@
+# YouTube Translator .gitignore
+# 이 파일은 Git이 추적하지 않을 파일들을 정의합니다
+
+# Python 관련
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 가상환경
+venv/
+ENV/
+env/
+.venv
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# 환경 변수 (중요!)
+.env
+.env.local
+.env.production
+.env.*.local
+
+# 로그 파일
+*.log
+logs/
+log/
+
+# 데이터베이스
+*.db
+*.sqlite
+*.sqlite3
+
+# 캐시
+.cache/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# 테스트 커버리지
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# 번역 결과 파일 (로컬 테스트)
+translations/
+*.txt
+*.json
+
+# 업로드 파일
+uploads/
+temp/
+
+# 프로덕션 빌드
+*.min.js
+*.min.css
+
+# SSL 인증서
+*.pem
+*.key
+*.crt
+
+# Docker
+.dockerignore
+
+# 백업 파일
+*.bak
+*.backup
+*~
+
+# Redis
+dump.rdb
+
+# 기타
+.env.example  # 이건 추적해야 함!
+!.gitignore
