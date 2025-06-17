@@ -1,63 +1,44 @@
 /**
- * YouTube Translator 프론트엔드 JavaScript
+ * YouTube 실시간 번역 자막 시스템
  * 
  * 주요 기능:
- * 1. 폼 제출 처리 및 API 통신
- * 2. UI 상태 관리 (로딩, 결과, 오류)
- * 3. 사용자 인터랙션 처리
- * 4. 테마 전환 (라이트/다크 모드)
- * 5. 유틸리티 함수들
+ * 1. YouTube IFrame API로 영상 재생
+ * 2. WebSocket으로 서버와 실시간 통신
+ * 3. 재생 시간에 맞춰 자막 동기화
+ * 4. 자막 오버레이 표시
  * 
  * @author Your Name
- * @version 1.0.0
+ * @version 2.0.0
  */
 
-// 전역 상태 관리 객체
-const AppState = {
-    isLoading: false,
-    currentTranslation: null,
-    theme: localStorage.getItem('theme') || 'light'
-};
+// 전역 변수
+let player = null;              // YouTube Player 객체
+let socket = null;              // WebSocket 연결
+let subtitles = [];             // 번역된 자막 배열
+let currentSubtitleIndex = -1;  // 현재 자막 인덱스
+let isPlaying = false;          // 재생 상태
+let syncInterval = null;        // 동기화 인터벌
 
-// DOM 요소 캐싱 (성능 최적화)
+// DOM 요소 캐싱
 const DOM = {
-    // 폼 관련
     form: null,
     urlInput: null,
-    submitBtn: null,
-    pasteBtn: null,
-    
-    // 섹션
-    loadingSection: null,
-    resultSection: null,
-    errorSection: null,
-    
-    // 결과 표시
-    videoTitle: null,
-    channelName: null,
-    videoDuration: null,
-    summaryContent: null,
-    translationContent: null,
-    
-    // 버튼
-    copyBtn: null,
-    downloadBtn: null,
-    shareBtn: null,
-    newTranslationBtn: null,
-    retryBtn: null,
-    themeToggle: null,
-    
-    // 기타
+    playerSection: null,
+    subtitleOverlay: null,
+    subtitleKorean: null,
+    subtitleEnglish: null,
+    playPauseBtn: null,
     progressFill: null,
-    errorMessage: null,
-    toast: null
+    timeDisplay: null,
+    subtitleList: null,
+    submitBtn: null
 };
 
 /**
- * 초기화 함수 - DOM이 로드되면 실행
+ * 초기화 함수
  */
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 YouTube Translator 초기화 시작');
+    console.log('🎬 YouTube 실시간 번역 자막 시스템 초기화');
     
     // DOM 요소 초기화
     initializeDOMElements();
@@ -65,49 +46,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // 이벤트 리스너 설정
     setupEventListeners();
     
-    // 테마 초기화
-    initializeTheme();
-    
-    // URL 파라미터 확인 (공유 링크로 접속한 경우)
-    checkURLParameters();
-    
-    console.log('✅ 초기화 완료');
+    // YouTube IFrame API 로드
+    loadYouTubeAPI();
 });
 
 /**
- * DOM 요소들을 캐싱하여 성능 향상
+ * DOM 요소 초기화
  */
 function initializeDOMElements() {
-    // 폼 관련
     DOM.form = document.getElementById('translateForm');
     DOM.urlInput = document.getElementById('youtubeUrl');
-    DOM.submitBtn = document.getElementById('submitBtn');
-    DOM.pasteBtn = document.getElementById('pasteBtn');
-    
-    // 섹션
-    DOM.loadingSection = document.getElementById('loadingSection');
-    DOM.resultSection = document.getElementById('resultSection');
-    DOM.errorSection = document.getElementById('errorSection');
-    
-    // 결과 표시
-    DOM.videoTitle = document.getElementById('videoTitle');
-    DOM.channelName = document.getElementById('channelName');
-    DOM.videoDuration = document.getElementById('videoDuration');
-    DOM.summaryContent = document.getElementById('summaryContent');
-    DOM.translationContent = document.getElementById('translationContent');
-    
-    // 버튼
-    DOM.copyBtn = document.getElementById('copyBtn');
-    DOM.downloadBtn = document.getElementById('downloadBtn');
-    DOM.shareBtn = document.getElementById('shareBtn');
-    DOM.newTranslationBtn = document.getElementById('newTranslationBtn');
-    DOM.retryBtn = document.getElementById('retryBtn');
-    DOM.themeToggle = document.getElementById('themeToggle');
-    
-    // 기타
+    DOM.playerSection = document.getElementById('playerSection');
+    DOM.subtitleOverlay = document.getElementById('subtitle-overlay');
+    DOM.subtitleKorean = document.getElementById('subtitle-korean');
+    DOM.subtitleEnglish = document.getElementById('subtitle-english');
+    DOM.playPauseBtn = document.getElementById('playPauseBtn');
     DOM.progressFill = document.getElementById('progressFill');
-    DOM.errorMessage = document.getElementById('errorMessage');
-    DOM.toast = document.getElementById('toast');
+    DOM.timeDisplay = document.getElementById('timeDisplay');
+    DOM.subtitleList = document.getElementById('subtitleList');
+    DOM.submitBtn = document.getElementById('submitBtn');
 }
 
 /**
@@ -117,515 +74,411 @@ function setupEventListeners() {
     // 폼 제출
     DOM.form.addEventListener('submit', handleFormSubmit);
     
-    // 붙여넣기 버튼
-    DOM.pasteBtn.addEventListener('click', handlePasteClick);
-    
-    // 샘플 URL 버튼들
+    // 샘플 URL 버튼
     document.querySelectorAll('.sample-url-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const url = e.currentTarget.dataset.url;
-            DOM.urlInput.value = url;
-            DOM.urlInput.focus();
+            DOM.urlInput.value = e.currentTarget.dataset.url;
         });
     });
     
-    // 결과 액션 버튼들
-    DOM.copyBtn.addEventListener('click', handleCopyClick);
-    DOM.downloadBtn.addEventListener('click', handleDownloadClick);
-    DOM.shareBtn.addEventListener('click', handleShareClick);
+    // 재생/일시정지 버튼
+    DOM.playPauseBtn.addEventListener('click', togglePlayPause);
     
-    // 새 번역 & 재시도 버튼
-    DOM.newTranslationBtn.addEventListener('click', resetForm);
-    DOM.retryBtn.addEventListener('click', () => {
-        resetForm();
-        DOM.form.dispatchEvent(new Event('submit'));
-    });
-    
-    // 테마 토글
-    DOM.themeToggle.addEventListener('click', toggleTheme);
-    
-    // 부드러운 스크롤 (네비게이션 링크)
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', (e) => {
-            e.preventDefault();
-            const target = document.querySelector(anchor.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth' });
-            }
-        });
-    });
+    // 진행바 클릭
+    document.querySelector('.progress-bar').addEventListener('click', seekToPosition);
 }
 
 /**
+ * YouTube IFrame API 로드
+ */
+function loadYouTubeAPI() {
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+}
+
+/**
+ * YouTube API 준비 완료 콜백
+ */
+window.onYouTubeIframeAPIReady = function() {
+    console.log('✅ YouTube IFrame API 준비 완료');
+};
+
+/**
  * 폼 제출 처리
- * @param {Event} e - 제출 이벤트
  */
 async function handleFormSubmit(e) {
     e.preventDefault();
     
-    // 유효성 검사
     const url = DOM.urlInput.value.trim();
-    if (!isValidYouTubeURL(url)) {
-        showToast('올바른 YouTube URL을 입력해주세요', 'error');
-        return;
-    }
+    if (!url) return;
     
-    // 중복 제출 방지
-    if (AppState.isLoading) {
-        return;
-    }
-    
-    // 고급 옵션 수집
-    const options = {
-        include_summary: document.getElementById('includeSummary').checked,
-        include_timestamps: document.getElementById('includeTimestamps').checked,
-        highlight_keywords: document.getElementById('highlightKeywords').checked
-    };
-    
-    // 번역 시작
-    await translateVideo(url, options);
-}
-
-/**
- * YouTube URL 유효성 검사
- * @param {string} url - 검사할 URL
- * @returns {boolean} 유효 여부
- */
-function isValidYouTubeURL(url) {
-    const patterns = [
-        /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)/,
-        /^https?:\/\/(www\.)?youtube\.com\/embed\//,
-        /^https?:\/\/m\.youtube\.com\/watch\?v=/
-    ];
-    
-    return patterns.some(pattern => pattern.test(url));
-}
-
-/**
- * 비디오 번역 메인 함수
- * @param {string} url - YouTube URL
- * @param {Object} options - 번역 옵션
- */
-async function translateVideo(url, options = {}) {
-    // UI 상태 변경
-    showLoadingState();
-    
-    // 진행률 시뮬레이션 시작
-    const progressInterval = startProgressSimulation();
+    // 버튼 상태 변경
+    DOM.submitBtn.disabled = true;
+    DOM.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>준비 중...</span>';
     
     try {
-        // API 호출
-        const response = await fetch('/api/translate', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                youtube_url: url,
-                ...options
-            })
+        // WebSocket 연결
+        await connectWebSocket();
+        
+        // 자막 로드 요청
+        socket.send(JSON.stringify({
+            type: 'init',
+            url: url
+        }));
+        
+    } catch (error) {
+        console.error('오류:', error);
+        showError('연결 실패. 다시 시도해주세요.');
+        resetSubmitButton();
+    }
+}
+
+/**
+ * WebSocket 연결
+ */
+async function connectWebSocket() {
+    return new Promise((resolve, reject) => {
+        // 기존 연결 종료
+        if (socket) {
+            socket.close();
+        }
+        
+        // 새 연결 생성
+        const wsUrl = `ws://localhost:8000/ws/${Date.now()}`;
+        socket = new WebSocket(wsUrl);
+        
+        socket.onopen = () => {
+            console.log('✅ WebSocket 연결 성공');
+            resolve();
+        };
+        
+        socket.onerror = (error) => {
+            console.error('❌ WebSocket 오류:', error);
+            reject(error);
+        };
+        
+        socket.onmessage = handleWebSocketMessage;
+        
+        socket.onclose = () => {
+            console.log('🔌 WebSocket 연결 종료');
+        };
+    });
+}
+
+/**
+ * WebSocket 메시지 처리
+ */
+function handleWebSocketMessage(event) {
+    const data = JSON.parse(event.data);
+    
+    switch (data.type) {
+        case 'ready':
+            // 자막 준비 완료
+            console.log(`✅ ${data.total}개의 자막 준비 완료`);
+            subtitles = data.subtitles;
+            initializePlayer();
+            displaySubtitleList();
+            resetSubmitButton();
+            break;
+            
+        case 'error':
+            // 오류 발생
+            showError(data.message);
+            resetSubmitButton();
+            break;
+    }
+}
+
+/**
+ * YouTube Player 초기화
+ */
+function initializePlayer() {
+    const videoId = extractVideoId(DOM.urlInput.value);
+    
+    // 플레이어 섹션 표시
+    DOM.playerSection.classList.remove('hidden');
+    DOM.playerSection.scrollIntoView({ behavior: 'smooth' });
+    
+    // 기존 플레이어 제거
+    if (player) {
+        player.destroy();
+    }
+    
+    // 새 플레이어 생성
+    player = new YT.Player('youtube-player', {
+        height: '100%',
+        width: '100%',
+        videoId: videoId,
+        playerVars: {
+            'autoplay': 0,
+            'controls': 1,
+            'rel': 0,
+            'modestbranding': 1,
+            'cc_load_policy': 0  // 기본 자막 숨김
+        },
+        events: {
+            'onReady': onPlayerReady,
+            'onStateChange': onPlayerStateChange
+        }
+    });
+}
+
+/**
+ * 플레이어 준비 완료 콜백
+ */
+function onPlayerReady(event) {
+    console.log('✅ 플레이어 준비 완료');
+    updateTimeDisplay();
+}
+
+/**
+ * 플레이어 상태 변경 콜백
+ */
+function onPlayerStateChange(event) {
+    if (event.data === YT.PlayerState.PLAYING) {
+        isPlaying = true;
+        startSubtitleSync();
+        DOM.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+    } else {
+        isPlaying = false;
+        stopSubtitleSync();
+        DOM.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+    }
+}
+
+/**
+ * 자막 동기화 시작
+ */
+function startSubtitleSync() {
+    if (syncInterval) return;
+    
+    syncInterval = setInterval(() => {
+        if (!player || !player.getCurrentTime) return;
+        
+        const currentTime = player.getCurrentTime();
+        updateProgress(currentTime);
+        updateCurrentSubtitle(currentTime);
+        updateTimeDisplay();
+    }, 100); // 100ms마다 체크
+}
+
+/**
+ * 자막 동기화 중지
+ */
+function stopSubtitleSync() {
+    if (syncInterval) {
+        clearInterval(syncInterval);
+        syncInterval = null;
+    }
+}
+
+/**
+ * 현재 시간에 맞는 자막 업데이트
+ */
+function updateCurrentSubtitle(currentTime) {
+    let foundIndex = -1;
+    
+    // 현재 시간에 맞는 자막 찾기
+    for (let i = 0; i < subtitles.length; i++) {
+        const subtitle = subtitles[i];
+        if (currentTime >= subtitle.start && currentTime < subtitle.start + subtitle.duration) {
+            foundIndex = i;
+            break;
+        }
+    }
+    
+    // 자막이 변경되었을 때만 업데이트
+    if (foundIndex !== currentSubtitleIndex) {
+        currentSubtitleIndex = foundIndex;
+        
+        if (foundIndex >= 0) {
+            showSubtitle(subtitles[foundIndex]);
+            highlightSubtitleItem(foundIndex);
+        } else {
+            hideSubtitle();
+        }
+    }
+}
+
+/**
+ * 자막 표시
+ */
+function showSubtitle(subtitle) {
+    DOM.subtitleKorean.textContent = subtitle.translation;
+    
+    // 원문 표시 옵션 확인
+    if (document.getElementById('showOriginal').checked) {
+        DOM.subtitleEnglish.textContent = subtitle.text;
+        DOM.subtitleEnglish.style.display = 'block';
+    } else {
+        DOM.subtitleEnglish.style.display = 'none';
+    }
+    
+    DOM.subtitleOverlay.style.display = 'block';
+}
+
+/**
+ * 자막 숨기기
+ */
+function hideSubtitle() {
+    DOM.subtitleOverlay.style.display = 'none';
+}
+
+/**
+ * 자막 목록 표시
+ */
+function displaySubtitleList() {
+    DOM.subtitleList.innerHTML = '';
+    
+    subtitles.forEach((subtitle, index) => {
+        const item = document.createElement('div');
+        item.className = 'subtitle-item';
+        item.dataset.index = index;
+        
+        item.innerHTML = `
+            <div class="subtitle-time">${formatTime(subtitle.start)}</div>
+            <div class="subtitle-content">
+                <div class="subtitle-content-korean">${subtitle.translation}</div>
+                <div class="subtitle-content-english">${subtitle.text}</div>
+            </div>
+        `;
+        
+        // 클릭 시 해당 시간으로 이동
+        item.addEventListener('click', () => {
+            if (player && player.seekTo) {
+                player.seekTo(subtitle.start);
+            }
         });
         
-        // 응답 처리
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || '번역 처리 중 오류가 발생했습니다');
+        DOM.subtitleList.appendChild(item);
+    });
+}
+
+/**
+ * 자막 아이템 하이라이트
+ */
+function highlightSubtitleItem(index) {
+    // 기존 하이라이트 제거
+    document.querySelectorAll('.subtitle-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // 현재 자막 하이라이트
+    const currentItem = document.querySelector(`.subtitle-item[data-index="${index}"]`);
+    if (currentItem) {
+        currentItem.classList.add('active');
+        
+        // 자동 스크롤 옵션 확인
+        if (document.getElementById('autoScroll').checked) {
+            currentItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-        
-        const data = await response.json();
-        
-        // 결과 저장
-        AppState.currentTranslation = data;
-        
-        // 결과 표시
-        displayResults(data);
-        
-        // 성공 알림
-        showToast('번역이 완료되었습니다!', 'success');
-        
-    } catch (error) {
-        console.error('번역 오류:', error);
-        showErrorState(error.message);
-    } finally {
-        // 진행률 정리
-        clearInterval(progressInterval);
-        hideLoadingState();
     }
 }
 
 /**
- * 로딩 상태 표시
+ * 재생/일시정지 토글
  */
-function showLoadingState() {
-    AppState.isLoading = true;
+function togglePlayPause() {
+    if (!player) return;
     
-    // 버튼 비활성화
-    DOM.submitBtn.disabled = true;
-    DOM.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>번역 중...</span>';
-    
-    // 섹션 표시/숨김
-    DOM.loadingSection.classList.remove('hidden');
-    DOM.resultSection.classList.add('hidden');
-    DOM.errorSection.classList.add('hidden');
-    
-    // 스크롤
-    DOM.loadingSection.scrollIntoView({ behavior: 'smooth' });
-}
-
-/**
- * 로딩 상태 숨김
- */
-function hideLoadingState() {
-    AppState.isLoading = false;
-    
-    // 버튼 활성화
-    DOM.submitBtn.disabled = false;
-    DOM.submitBtn.innerHTML = '<i class="fas fa-language"></i> <span>번역 시작</span>';
-    
-    // 로딩 섹션 숨김
-    DOM.loadingSection.classList.add('hidden');
-    
-    // 진행률 초기화
-    DOM.progressFill.style.width = '0%';
-}
-
-/**
- * 진행률 시뮬레이션
- * @returns {number} 인터벌 ID
- */
-function startProgressSimulation() {
-    let progress = 0;
-    const increment = Math.random() * 3 + 1; // 1-4% 랜덤 증가
-    
-    return setInterval(() => {
-        progress += increment;
-        if (progress > 90) progress = 90; // 90%에서 멈춤
-        DOM.progressFill.style.width = `${progress}%`;
-    }, 200);
-}
-
-/**
- * 결과 표시
- * @param {Object} data - API 응답 데이터
- */
-function displayResults(data) {
-    // 비디오 정보
-    DOM.videoTitle.textContent = data.video_title || '제목 없음';
-    DOM.channelName.textContent = data.channel_name || '채널 정보 없음';
-    DOM.videoDuration.textContent = data.video_duration || '시간 정보 없음';
-    
-    // 요약 (옵션)
-    if (data.summary) {
-        document.getElementById('summarySection').style.display = 'block';
-        DOM.summaryContent.textContent = data.summary;
+    if (isPlaying) {
+        player.pauseVideo();
     } else {
-        document.getElementById('summarySection').style.display = 'none';
-    }
-    
-    // 번역 결과
-    DOM.translationContent.innerHTML = formatTranslation(data.translation);
-    
-    // 결과 섹션 표시
-    DOM.resultSection.classList.remove('hidden');
-    DOM.resultSection.scrollIntoView({ behavior: 'smooth' });
-}
-
-/**
- * 번역 텍스트 포맷팅
- * @param {string} text - 원본 텍스트
- * @returns {string} 포맷된 HTML
- */
-function formatTranslation(text) {
-    // 기본 이스케이프
-    let formatted = escapeHtml(text);
-    
-    // 줄바꿈 처리
-    formatted = formatted.replace(/\n/g, '<br>');
-    
-    // 타임스탬프 강조 [00:00]
-    formatted = formatted.replace(
-        /\[(\d{2}:\d{2})\]/g,
-        '<span class="timestamp">[$1]</span>'
-    );
-    
-    // 굵은 글씨 **텍스트**
-    formatted = formatted.replace(
-        /\*\*(.*?)\*\*/g,
-        '<strong>$1</strong>'
-    );
-    
-    // 화자 구분 [화자 1]
-    formatted = formatted.replace(
-        /\[(화자 \d+)\]/g,
-        '<span class="speaker">[$1]</span>'
-    );
-    
-    return formatted;
-}
-
-/**
- * HTML 이스케이프 (XSS 방지)
- * @param {string} text - 원본 텍스트
- * @returns {string} 이스케이프된 텍스트
- */
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-/**
- * 오류 상태 표시
- * @param {string} message - 오류 메시지
- */
-function showErrorState(message) {
-    DOM.errorMessage.textContent = message;
-    DOM.errorSection.classList.remove('hidden');
-    DOM.errorSection.scrollIntoView({ behavior: 'smooth' });
-}
-
-/**
- * 복사 버튼 클릭 처리
- */
-async function handleCopyClick() {
-    if (!AppState.currentTranslation) return;
-    
-    try {
-        const text = DOM.translationContent.innerText;
-        await navigator.clipboard.writeText(text);
-        
-        // 버튼 상태 변경
-        DOM.copyBtn.innerHTML = '<i class="fas fa-check"></i> <span>복사됨!</span>';
-        DOM.copyBtn.style.backgroundColor = 'var(--success-color)';
-        DOM.copyBtn.style.color = 'white';
-        
-        // 3초 후 원래대로
-        setTimeout(() => {
-            DOM.copyBtn.innerHTML = '<i class="fas fa-copy"></i> <span>복사</span>';
-            DOM.copyBtn.style.backgroundColor = '';
-            DOM.copyBtn.style.color = '';
-        }, 3000);
-        
-        showToast('클립보드에 복사되었습니다', 'success');
-    } catch (error) {
-        console.error('복사 실패:', error);
-        showToast('복사에 실패했습니다', 'error');
+        player.playVideo();
     }
 }
 
 /**
- * 다운로드 버튼 클릭 처리
+ * 진행바 업데이트
  */
-function handleDownloadClick() {
-    if (!AppState.currentTranslation) return;
+function updateProgress(currentTime) {
+    if (!player || !player.getDuration) return;
     
-    // 텍스트 파일 생성
-    const content = `YouTube 번역 결과
-========================
-제목: ${AppState.currentTranslation.video_title || ''}
-채널: ${AppState.currentTranslation.channel_name || ''}
-길이: ${AppState.currentTranslation.video_duration || ''}
-번역일: ${new Date(AppState.currentTranslation.translated_at).toLocaleString('ko-KR')}
-URL: ${AppState.currentTranslation.youtube_url}
-
-요약
-----
-${AppState.currentTranslation.summary || '요약 없음'}
-
-전체 번역
----------
-${DOM.translationContent.innerText}`;
-    
-    // Blob 생성 및 다운로드
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `youtube_translation_${Date.now()}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    showToast('다운로드가 시작되었습니다', 'success');
+    const duration = player.getDuration();
+    const progress = (currentTime / duration) * 100;
+    DOM.progressFill.style.width = `${progress}%`;
 }
 
 /**
- * 공유 버튼 클릭 처리
+ * 시간 표시 업데이트
  */
-async function handleShareClick() {
-    if (!AppState.currentTranslation) return;
+function updateTimeDisplay() {
+    if (!player || !player.getCurrentTime) return;
     
-    const shareData = {
-        title: 'YouTube 번역 결과',
-        text: `"${AppState.currentTranslation.video_title}" 번역 결과를 확인하세요!`,
-        url: window.location.href
-    };
+    const currentTime = player.getCurrentTime() || 0;
+    const duration = player.getDuration() || 0;
     
-    try {
-        // Web Share API 지원 확인
-        if (navigator.share) {
-            await navigator.share(shareData);
-            showToast('공유되었습니다', 'success');
-        } else {
-            // 대체: URL 복사
-            await navigator.clipboard.writeText(window.location.href);
-            showToast('링크가 복사되었습니다', 'success');
-        }
-    } catch (error) {
-        console.error('공유 실패:', error);
-        // 사용자가 공유를 취소한 경우는 오류 표시하지 않음
-        if (error.name !== 'AbortError') {
-            showToast('공유에 실패했습니다', 'error');
-        }
-    }
+    DOM.timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
 }
 
 /**
- * 붙여넣기 버튼 클릭 처리
+ * 진행바 클릭으로 위치 이동
  */
-async function handlePasteClick() {
-    try {
-        const text = await navigator.clipboard.readText();
-        DOM.urlInput.value = text;
-        DOM.urlInput.focus();
-        
-        // 자동으로 YouTube URL인지 확인
-        if (isValidYouTubeURL(text)) {
-            showToast('YouTube URL이 붙여넣어졌습니다', 'success');
-        }
-    } catch (error) {
-        console.error('붙여넣기 실패:', error);
-        showToast('클립보드 접근 권한이 필요합니다', 'error');
-    }
+function seekToPosition(e) {
+    if (!player || !player.getDuration) return;
+    
+    const progressBar = e.currentTarget;
+    const clickX = e.offsetX;
+    const width = progressBar.offsetWidth;
+    const percentage = clickX / width;
+    const duration = player.getDuration();
+    const seekTime = duration * percentage;
+    
+    player.seekTo(seekTime);
 }
 
 /**
- * 폼 초기화
+ * 비디오 ID 추출
  */
-function resetForm() {
-    DOM.form.reset();
-    DOM.resultSection.classList.add('hidden');
-    DOM.errorSection.classList.add('hidden');
-    AppState.currentTranslation = null;
-    DOM.urlInput.focus();
+function extractVideoId(url) {
+    const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11}).*/);
+    return match ? match[1] : null;
 }
 
 /**
- * 테마 초기화
+ * 시간 포맷팅
  */
-function initializeTheme() {
-    document.documentElement.setAttribute('data-theme', AppState.theme);
-    updateThemeIcon();
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
 /**
- * 테마 전환
+ * 오류 표시
  */
-function toggleTheme() {
-    AppState.theme = AppState.theme === 'light' ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', AppState.theme);
-    localStorage.setItem('theme', AppState.theme);
-    updateThemeIcon();
+function showError(message) {
+    // Toast 알림 표시
+    const toast = document.getElementById('toast');
+    const toastMessage = toast.querySelector('.toast-message');
     
-    showToast(`${AppState.theme === 'dark' ? '다크' : '라이트'} 모드로 전환되었습니다`, 'success');
-}
-
-/**
- * 테마 아이콘 업데이트
- */
-function updateThemeIcon() {
-    const icon = DOM.themeToggle.querySelector('i');
-    icon.className = AppState.theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
-}
-
-/**
- * Toast 알림 표시
- * @param {string} message - 알림 메시지
- * @param {string} type - 알림 타입 (success, error, warning)
- */
-function showToast(message, type = 'success') {
-    // 기존 toast 제거
-    DOM.toast.className = 'toast';
+    toast.className = 'toast error';
+    toastMessage.textContent = message;
+    toast.classList.remove('hidden');
     
-    // 메시지 설정
-    DOM.toast.querySelector('.toast-message').textContent = message;
-    
-    // 아이콘 설정
-    const icon = DOM.toast.querySelector('.toast-icon');
-    const iconClasses = {
-        success: 'fas fa-check-circle',
-        error: 'fas fa-exclamation-circle',
-        warning: 'fas fa-exclamation-triangle'
-    };
-    icon.className = `toast-icon ${iconClasses[type] || iconClasses.success}`;
-    
-    // 표시
-    DOM.toast.classList.add(type);
-    DOM.toast.classList.remove('hidden');
-    
-    // 3초 후 자동 숨김
     setTimeout(() => {
-        DOM.toast.classList.add('hidden');
-    }, 3000);
+        toast.classList.add('hidden');
+    }, 5000);
 }
 
 /**
- * URL 파라미터 확인 (공유 링크 처리)
+ * 제출 버튼 초기화
  */
-function checkURLParameters() {
-    const params = new URLSearchParams(window.location.search);
-    const youtubeUrl = params.get('url');
-    
-    if (youtubeUrl && isValidYouTubeURL(youtubeUrl)) {
-        DOM.urlInput.value = youtubeUrl;
-        // 자동으로 번역 시작
-        setTimeout(() => {
-            DOM.form.dispatchEvent(new Event('submit'));
-        }, 500);
-    }
+function resetSubmitButton() {
+    DOM.submitBtn.disabled = false;
+    DOM.submitBtn.innerHTML = '<i class="fas fa-play"></i> <span>영상 재생 & 번역</span>';
 }
 
-/**
- * 네트워크 상태 감지
- */
-window.addEventListener('online', () => {
-    showToast('인터넷 연결이 복구되었습니다', 'success');
-});
-
-window.addEventListener('offline', () => {
-    showToast('인터넷 연결이 끊어졌습니다', 'error');
-});
-
-/**
- * 페이지 벗어날 때 경고 (번역 진행 중인 경우)
- */
-window.addEventListener('beforeunload', (e) => {
-    if (AppState.isLoading) {
-        e.preventDefault();
-        e.returnValue = '번역이 진행 중입니다. 페이지를 벗어나시겠습니까?';
+// 페이지 언로드 시 정리
+window.addEventListener('beforeunload', () => {
+    if (socket) {
+        socket.close();
+    }
+    if (syncInterval) {
+        clearInterval(syncInterval);
     }
 });
 
-// 💡 초보자를 위한 JavaScript 팁
-/*
- * 1. async/await 사용하기
- *    - 비동기 코드를 동기 코드처럼 작성할 수 있습니다
- *    - try/catch로 에러 처리가 쉬워집니다
- * 
- * 2. DOM 요소 캐싱
- *    - document.getElementById를 반복하지 말고 한 번만 호출하세요
- *    - 성능이 크게 향상됩니다
- * 
- * 3. 이벤트 위임
- *    - 부모 요소에 이벤트를 등록하면 동적 요소도 처리 가능합니다
- *    - event.target으로 실제 클릭된 요소를 확인하세요
- * 
- * 4. 디바운싱/쓰로틀링
- *    - 연속적인 이벤트(스크롤, 리사이즈)는 제한하세요
- *    - 성능 문제를 방지할 수 있습니다
- * 
- * 5. 에러 처리
- *    - 모든 비동기 작업에는 try/catch를 사용하세요
- *    - 사용자에게 친절한 에러 메시지를 보여주세요
- */
+console.log('✅ YouTube 실시간 번역 자막 스크립트 로드 완료');
