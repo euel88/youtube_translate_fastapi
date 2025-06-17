@@ -1,143 +1,56 @@
-# YouTube Translator Python 의존성
-# 설치: pip install -r requirements.txt
-
-# ===========================
-# 핵심 프레임워크
-# ===========================
-fastapi==0.104.1          # 웹 프레임워크
-uvicorn[standard]==0.24.0 # ASGI 서버
-gunicorn==21.2.0         # 프로덕션 서버
-
-# ===========================
-# Google Gemini API
-# ===========================
-google-generativeai==0.3.0  # Gemini API 클라이언트
-
-# ===========================
-# YouTube 자막 추출
-# ===========================
-youtube-transcript-api==0.6.1  # YouTube 자막 API
-
-# ===========================
-# WebSocket 지원
-# ===========================
-websockets==12.0          # WebSocket 클라이언트/서버
-
-# ===========================
-# 데이터 검증 & 설정
-# ===========================
-pydantic==2.5.0            # 데이터 검증
-pydantic-settings==2.1.0   # 설정 관리
-python-dotenv==1.0.0       # 환경 변수 로드
-
-# ===========================
-# HTTP & 비동기
-# ===========================
-httpx==0.25.2             # HTTP 클라이언트
-aiofiles==23.2.1          # 비동기 파일 처리
-python-multipart==0.0.6   # 폼 데이터 처리
-
-# ===========================
-# 캐싱 & 데이터베이스
-# ===========================
-redis==5.0.1              # Redis 클라이언트 (선택사항)
-sqlalchemy==2.0.23        # ORM (선택사항)
-alembic==1.13.0          # DB 마이그레이션 (선택사항)
-asyncpg==0.29.0          # PostgreSQL 드라이버 (선택사항)
-
-# ===========================
-# 보안 & 인증
-# ===========================
-python-jose[cryptography]==3.3.0  # JWT 토큰
-passlib[bcrypt]==1.7.4           # 비밀번호 해싱
-cryptography==41.0.7             # 암호화
-
-# ===========================
-# 유틸리티
-# ===========================
-python-dateutil==2.8.2    # 날짜/시간 처리
-pytz==2023.3             # 시간대 처리
-email-validator==2.1.0   # 이메일 검증
-
-# ===========================
-# 로깅 & 모니터링
-# ===========================
-python-json-logger==2.0.7              # JSON 로깅
-prometheus-fastapi-instrumentator==6.1.0  # Prometheus 메트릭
-sentry-sdk[fastapi]==1.39.1            # 에러 추적 (선택사항)
-
-# ===========================
-# 테스트
-# ===========================
-pytest==7.4.3            # 테스트 프레임워크
-pytest-asyncio==0.21.1   # 비동기 테스트
-pytest-cov==4.1.0       # 커버리지
-pytest-mock==3.12.0     # 모킹
-httpx-mock==0.25.0      # HTTP 모킹
-factory-boy==3.3.0      # 테스트 데이터 생성
-
-# ===========================
-# 개발 도구
-# ===========================
-black==23.12.0          # 코드 포맷터
-flake8==6.1.0          # 린터
-mypy==1.7.1            # 타입 체커
-isort==5.13.2          # import 정렬
-pre-commit==3.6.0      # Git 훅
-ipython==8.18.1        # 인터랙티브 셸
-
-# ===========================
-# 문서화
-# ===========================
-mkdocs==1.5.3                    # 문서 생성
-mkdocs-material==9.5.2           # Material 테마
-mkdocs-mermaid2-plugin==1.1.1   # 다이어그램
-
-# ===========================
-# 성능 최적화
-# ===========================
-orjson==3.9.10         # 빠른 JSON 처리
-ujson==5.9.0          # 대안 JSON 라이브러리
-aiocache==0.12.2      # 비동기 캐싱
-
-# ===========================
-# YouTube 관련 (선택사항)
-# ===========================
-# youtube-transcript-api==0.6.1  # YouTube 자막 추출
-# yt-dlp==2023.12.30           # YouTube 다운로드
-
-# ===========================
-# 버전 고정
-# ===========================
-# 프로덕션에서는 정확한 버전을 사용하세요
-# pip freeze > requirements-lock.txt
-
 # FastAPI 핵심 패키지
 fastapi==0.104.1
-uvicorn[standard]==0.24.0.post1
+uvicorn[standard]==0.24.0
+gunicorn==21.2.0
 
 # Google Gemini API
 google-generativeai==0.3.0
 
-# 환경 변수 관리
+# YouTube 자막 추출
+youtube-transcript-api==0.6.1
+
+# WebSocket 지원
+websockets==12.0
+
+# 데이터 검증 및 설정
+pydantic==2.5.0
+pydantic-settings==2.1.0
 python-dotenv==1.0.0
 
-# HTTP 요청 처리
+# HTTP 클라이언트 및 파일 처리
 httpx==0.25.2
+aiofiles==23.2.1
 python-multipart==0.0.6
 
-# CORS 및 보안
+# 데이터베이스 및 캐싱 (선택사항)
+redis==5.0.1
+sqlalchemy==2.0.23
+alembic==1.13.0
+asyncpg==0.29.0
+
+# 보안 패키지
 python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+cryptography==41.0.7
 
-# 로깅 및 디버깅
-colorlog==6.8.0
+# 유틸리티
+python-dateutil==2.8.2
+pytz==2023.3
+email-validator==2.1.0
 
-# YouTube 관련 (선택사항)
-youtube-transcript-api==0.6.1
-pytube==15.0.0
+# 로깅 및 모니터링
+python-json-logger==2.0.7
+prometheus-fastapi-instrumentator==6.1.0
+sentry-sdk[fastapi]==1.39.1
 
-# 성능 최적화
-orjson==3.9.10
+# 테스트 패키지 (개발용)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
 
-# 비동기 처리
-aiofiles==23.2.1
+# httpx-mock 대신 respx 사용 (httpx 모킹 라이브러리)
+respx==0.20.2
+
+# 또는 pytest-httpx 사용 (선택사항)
+# pytest-httpx==0.28.0
