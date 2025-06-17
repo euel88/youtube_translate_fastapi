@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="영어 YouTube 영상을 한국어로 번역하는 무료 서비스">
+    <meta name="keywords" content="YouTube, 번역, 영어, 한국어, 자막, 번역기">
+    <meta name="author" content="Your Name">
+    
+    <title>YouTube Translator - 영어 영상을 한국어로</title>
+    
+    <!-- 파비콘 -->
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    
+    <!-- CSS 스타일시트 -->
+    <link rel="stylesheet" href="/static/style.css">
+    
+    <!-- 구글 폰트 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome 아이콘 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- 헤더 섹션 -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <i class="fab fa-youtube"></i>
+                <span>YouTube Translator</span>
+            </div>
+            <nav class="nav">
+                <a href="#features" class="nav-link">기능</a>
+                <a href="#how-to" class="nav-link">사용법</a>
+                <a href="#contact" class="nav-link">문의</a>
+                <button class="theme-toggle" id="themeToggle" aria-label="테마 변경">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </nav>
+        </div>
+    </header>
+    
+    <!-- 메인 콘텐츠 -->
+    <main class="main">
+        <!-- 히어로 섹션 -->
+        <section class="hero">
+            <div class="container">
+                <h1 class="hero-title">
+                    YouTube 영상을 <span class="highlight">한국어</span>로 번역하세요
+                </h1>
+                <p class="hero-subtitle">
+                    AI 기반 고품질 번역으로 영어 콘텐츠를 완벽하게 이해하세요
+                </p>
+                
+                <!-- 번역 폼 -->
+                <form id="translateForm" class="translate-form">
+                    <div class="input-wrapper">
+                        <i class="fas fa-link input-icon"></i>
+                        <input 
+                            type="url" 
+                            id="youtubeUrl" 
+                            class="url-input"
+                            placeholder="YouTube URL을 입력하세요 (예: https://youtube.com/watch?v=...)"
+                            required
+                            autocomplete="url"
+                            pattern="https?://(www\.)?(youtube\.com/watch\?v=|youtu\.be/).*"
+                        >
+                        <button type="button" class="paste-btn" id="pasteBtn" title="붙여넣기">
+                            <i class="fas fa-paste"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- 고급 옵션 (접기/펼치기) -->
+                    <details class="advanced-options">
+                        <summary>고급 옵션 <i class="fas fa-chevron-down"></i></summary>
+                        <div class="options-grid">
+                            <label class="option-label">
+                                <input type="checkbox" id="includeSummary" checked>
+                                <span>요약 포함</span>
+                            </label>
+                            <label class="option-label">
+                                <input type="checkbox" id="includeTimestamps">
+                                <span>타임스탬프 포함</span>
+                            </label>
+                            <label class="option-label">
+                                <input type="checkbox" id="highlightKeywords" checked>
+                                <span>중요 키워드 강조</span>
+                            </label>
+                        </div>
+                    </details>
+                    
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        <i class="fas fa-language"></i>
+                        <span>번역 시작</span>
+                    </button>
+                </form>
+                
+                <!-- 샘플 URL 제안 -->
+                <div class="sample-urls">
+                    <p>테스트해보세요:</p>
+                    <button type="button" class="sample-url-btn" data-url="https://www.youtube.com/watch?v=JGwWNGJdvx8">
+                        Ed Sheeran - Shape of You
+                    </button>
+                    <button type="button" class="sample-url-btn" data-url="https://www.youtube.com/watch?v=kXYiU_JCYtU">
+                        Linkin Park - Numb
+                    </button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 로딩 상태 -->
+        <section id="loadingSection" class="loading-section hidden">
+            <div class="container">
+                <div class="loading-content">
+                    <div class="spinner"></div>
+                    <p class="loading-text">번역 중입니다...</p>
+                    <p class="loading-subtext">영상 길이에 따라 시간이 소요될 수 있습니다</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 결과 섹션 -->
+        <section id="resultSection" class="result-section hidden">
+            <div class="container">
+                <div class="result-header">
+                    <h2 class="result-title">번역 결과</h2>
+                    <div class="result-actions">
+                        <button class="action-btn" id="copyBtn" title="복사">
+                            <i class="fas fa-copy"></i>
+                            <span>복사</span>
+                        </button>
+                        <button class="action-btn" id="downloadBtn" title="다운로드">
+                            <i class="fas fa-download"></i>
+                            <span>다운로드</span>
+                        </button>
+                        <button class="action-btn" id="shareBtn" title="공유">
+                            <i class="fas fa-share-alt"></i>
+                            <span>공유</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 비디오 정보 -->
+                <div class="video-info" id="videoInfo">
+                    <div class="info-item">
+                        <i class="fas fa-video"></i>
+                        <span id="videoTitle">제목 로딩 중...</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-user"></i>
+                        <span id="channelName">채널 로딩 중...</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-clock"></i>
+                        <span id="videoDuration">시간 로딩 중...</span>
+                    </div>
+                </div>
+                
+                <!-- 요약 섹션 -->
+                <div class="summary-section" id="summarySection">
+                    <h3 class="section-title">
+                        <i class="fas fa-list"></i>
+                        핵심 요약
+                    </h3>
+                    <div class="summary-content" id="summaryContent">
+                        요약 내용이 여기에 표시됩니다...
+                    </div>
+                </div>
+                
+                <!-- 번역 결과 -->
+                <div class="translation-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-language"></i>
+                        전체 번역
+                    </h3>
+                    <div class="translation-content" id="translationContent">
+                        번역된 내용이 여기에 표시됩니다...
+                    </div>
+                </div>
+                
+                <!-- 새 번역 버튼 -->
+                <button class="new-translation-btn" id="newTranslationBtn">
+                    <i class="fas fa-redo"></i>
+                    새 번역 시작
+                </button>
+            </div>
+        </section>
+        
+        <!-- 오류 섹션 -->
+        <section id="errorSection" class="error-section hidden">
+            <div class="container">
+                <div class="error-content">
+                    <i class="fas fa-exclamation-triangle error-icon"></i>
+                    <h3 class="error-title">오류가 발생했습니다</h3>
+                    <p class="error-message" id="errorMessage">
+                        번역 처리 중 문제가 발생했습니다.
+                    </p>
+                    <button class="retry-btn" id="retryBtn">
+                        <i class="fas fa-redo"></i>
+                        다시 시도
+                    </button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 기능 소개 -->
+        <section id="features" class="features-section">
+            <div class="container">
+                <h2 class="section-title">주요 기능</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <h3>AI 기반 번역</h3>
+                        <p>Google Gemini API를 활용한 정확하고 자연스러운 번역</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <h3>빠른 처리</h3>
+                        <p>최적화된 알고리즘으로 신속한 번역 결과 제공</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h3>안전한 서비스</h3>
+                        <p>개인정보 보호와 보안을 최우선으로 하는 서비스</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <h3>무료 사용</h3>
+                        <p>기본 기능은 완전 무료로 이용 가능</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 사용법 -->
+        <section id="how-to" class="how-to-section">
+            <div class="container">
+                <h2 class="section-title">사용법</h2>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <h3>YouTube URL 복사</h3>
+                        <p>번역하고 싶은 영어 YouTube 영상의 URL을 복사하세요</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <h3>URL 입력</h3>
+                        <p>복사한 URL을 입력창에 붙여넣으세요</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <h3>번역 시작</h3>
+                        <p>"번역 시작" 버튼을 클릭하세요</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <h3>결과 확인</h3>
+                        <p>번역된 결과를 확인하고 복사하거나 다운로드하세요</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <!-- 푸터 -->
+    <footer class="footer" id="contact">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>YouTube Translator</h4>
+                    <p>영어 콘텐츠의 장벽을 없애고<br>지식의 접근성을 높입니다</p>
+                </div>
+                <div class="footer-section">
+                    <h4>링크</h4>
+                    <ul class="footer-links">
+                        <li><a href="/privacy">개인정보처리방침</a></li>
+                        <li><a href="/terms">이용약관</a></li>
+                        <li><a href="/api">API 문서</a></li>
+                        <li><a href="https://github.com/yourusername/youtube-translator">GitHub</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>연락처</h4>
+                    <p>
+                        <i class="fas fa-envelope"></i> your.email@example.com<br>
+                        <i class="fab fa-github"></i> <a href="https://github.com/yourusername">GitHub</a>
+                    </p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 YouTube Translator. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Toast 알림 -->
+    <div id="toast" class="toast hidden">
+        <i class="fas fa-check-circle toast-icon"></i>
+        <span class="toast-message">메시지</span>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="/static/script.js"></script>
+</body>
+</html>
