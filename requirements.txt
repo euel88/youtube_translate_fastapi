@@ -111,3 +111,33 @@ aiocache==0.12.2      # 비동기 캐싱
 # ===========================
 # 프로덕션에서는 정확한 버전을 사용하세요
 # pip freeze > requirements-lock.txt
+
+# FastAPI 핵심 패키지
+fastapi==0.104.1
+uvicorn[standard]==0.24.0.post1
+
+# Google Gemini API
+google-generativeai==0.3.0
+
+# 환경 변수 관리
+python-dotenv==1.0.0
+
+# HTTP 요청 처리
+httpx==0.25.2
+python-multipart==0.0.6
+
+# CORS 및 보안
+python-jose[cryptography]==3.3.0
+
+# 로깅 및 디버깅
+colorlog==6.8.0
+
+# YouTube 관련 (선택사항)
+youtube-transcript-api==0.6.1
+pytube==15.0.0
+
+# 성능 최적화
+orjson==3.9.10
+
+# 비동기 처리
+aiofiles==23.2.1
