@@ -14,6 +14,10 @@ from pathlib import Path
 from app.config import settings
 from app.models import TranslateRequest, TranslateResponse, HealthCheckResponse
 from app.services.translator import TranslatorService
+from fastapi import WebSocket, WebSocketDisconnect
+from typing import List, Dict
+import json
+from youtube_transcript_api import YouTubeTranscriptApi
 
 # 로깅 설정
 logging.basicConfig(
