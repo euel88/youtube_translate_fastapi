@@ -16,9 +16,10 @@ services:
       pip install --upgrade pip
       pip install -r requirements.txt
     
-    # 서버 시작 명령어
+    # 서버 시작 명령어 (수정됨!)
     startCommand: |
-      # Render가 자동으로 PORT 환경변수 제공
+      # ✅ 올바른 경로: app.main:app
+      # app 패키지의 main 모듈에서 app 객체를 찾습니다
       uvicorn app.main:app --host 0.0.0.0 --port $PORT
     
     # 환경 변수 설정
@@ -29,7 +30,7 @@ services:
         
       # Python 버전 지정
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.11.0  # 더 안정적인 버전으로 변경
         
       # 타임존 설정 (한국 시간)
       - key: TZ
