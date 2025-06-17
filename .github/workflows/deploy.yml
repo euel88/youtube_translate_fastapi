@@ -1,0 +1,7 @@
+# 파일 생성
+touch .github/workflows/deploy.yml
+
+# 또는 직접 편집기로 생성
+nano .github/workflows/deploy.yml
+# 또는
+code .github/workflows/deploy.yml
