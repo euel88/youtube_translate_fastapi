@@ -1,0 +1,162 @@
+# YouTube Translator .dockerignore
+# Docker 이미지 빌드 시 제외할 파일과 디렉토리
+# 이미지 크기를 줄이고 빌드 속도를 향상시킵니다
+
+# Git 관련
+.git/
+.gitignore
+.gitattributes
+
+# GitHub 관련
+.github/
+CONTRIBUTING.md
+PULL_REQUEST_TEMPLATE.md
+
+# Python 관련
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.manifest
+*.spec
+
+# 가상환경
+venv/
+ENV/
+env/
+.env.local
+.venv
+
+# IDE 설정
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# 테스트 관련
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# 환경 설정 (중요!)
+.env
+.env.*
+!.env.example
+
+# 로그
+*.log
+logs/
+log/
+
+# 데이터베이스
+*.db
+*.sqlite
+*.sqlite3
+
+# OS 관련
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 문서
+README.md
+QUICKSTART.md
+docs/
+*.md
+!requirements*.txt
+
+# 테스트 데이터
+tests/
+test_*.py
+*_test.py
+
+# 개발 도구
+Makefile
+docker-compose*.yml
+.dockerignore
+Dockerfile*
+!Dockerfile
+
+# CI/CD
+.travis.yml
+.gitlab-ci.yml
+Jenkinsfile
+
+# 임시 파일
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+tmp/
+temp/
+
+# 업로드/다운로드
+uploads/
+downloads/
+media/
+
+# 캐시
+.cache/
+cache/
+
+# 노트북
+*.ipynb
+.ipynb_checkpoints/
+
+# 기타
+node_modules/
+npm-debug.log
+yarn-error.log
+.npm
+.yarn
+
+# 프로덕션에서 불필요한 파일
+*.example
+*.sample
+LICENSE
+CHANGELOG*
+
+# 빌드 아티팩트
+*.min.js
+*.min.css
+*.map
+
+# 번역 결과 (로컬 테스트)
+translations/
+output/
+
+# 초보자를 위한 설명:
+# .dockerignore는 .gitignore와 비슷하지만 Docker 빌드용입니다
+# 이 파일에 있는 항목들은 Docker 이미지에 포함되지 않습니다
+# 이렇게 하면:
+# 1. 이미지 크기가 작아집니다
+# 2. 빌드 속도가 빨라집니다
+# 3. 민감한 정보가 이미지에 포함되지 않습니다
